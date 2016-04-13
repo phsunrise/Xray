@@ -22,44 +22,39 @@ imData = np.array(imFile.getdata()).reshape((ny, nx)).astype(float)
 imData_bkgd = np.array(imFile_bkgd.getdata()).reshape((ny, nx)).astype(float)
 imData = imData - imData_bkgd
 
-# pyplot setup 
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-
 # Display the image
+fig = plt.figure(figsize=(10,10))
+ax = fig.add_subplot(1,1,1)
 ax.imshow(imData, origin='lower')
-xmin, xmax = ax.get_xlim()
-ymin, ymax = ax.get_ylim()
+ax.set_title("Select polygon region: right or double click to finish")
 
 # use ROI to select region
 ROI = roipoly(roicolor='r')
-ax.imshow
-
-xx, yy = np.meshgrid(np.arange(nx), np.arange(ny))
-# mask for data points to be fitted
-mask = np.logical_and.reduce((yy <= k1*xx+b1, yy >= k2*xx+b2, \
-            imData > 0.1 * np.max(imData)))
-#from pprint import pprint
-#pprint(zip(xx[mask], yy[mask], imData[mask]))
-
-# delineate approximate circle region
-ax.imshow(mask, origin='lower')
-ax.plot([xmin, xmax], [k1*xmin+b1, k1*xmax+b1], 'r--') 
-ax.plot([xmin, xmax], [k2*xmin+b2, k2*xmax+b2], 'r--') 
+#plt.imshow(imData, origin='lower')
+#ROI.displayROI()
+mask = np.logical_and(ROI.getMask(imData), imData>0.3*np.max(imData))
+#plt.imshow(mask, origin='lower', cmap='Greys')
 
 ## fit to circle, weight by intensity
-x0, y0, r0 = fitcircle(xx[mask], yy[mask], [1.]*np.sum(mask), -150., 700., 480.)
+xx, yy = np.meshgrid(np.arange(nx), np.arange(ny))
+x0, y0, r0 = fitcircle(xx[mask], yy[mask], imData[mask])
 print "x0, y0, r0 =", x0, y0, r0
-# draw the circle
-cir_x = np.linspace(x0-r0, x0+r0, 500)
+# draw the image and the circle
+cir_x = np.linspace(x0-r0+0.5, x0+r0-0.5, 500)
 cir_y = y0 - np.sqrt(r0**2 - (cir_x-x0)**2)
-ax.plot(cir_x, cir_y, 'r-')
 
-ax.set_xlim(xmin, xmax)
-ax.set_ylim(ymin, ymax)
+fig = plt.figure()
+ax1 = fig.add_subplot(2,2,1)
+ax1.imshow(imData, origin='lower')
+xmin, xmax = ax1.get_xlim()
+ymin, ymax = ax1.get_ylim()
+
+ax1.plot(cir_x, cir_y, 'r-')
+ax1.set_xlim(xmin, xmax)
+ax1.set_ylim(ymin, ymax)
 
 ## convert to polar coordinates
-ax = fig.add_subplot(2,3,3)
+ax2 = fig.add_subplot(2,2,2)
 # find the extent by looking at the corners
 y_corners = np.array([0, 0, ny-1, ny-1])
 x_corners = np.array([0, nx-1, 0, nx-1])
@@ -80,18 +75,20 @@ for y in range(ny):
         imData_polar[findind(t,tt), \
                      findind(r,rr)] = imData[y,x]
 
-ax.imshow(imData_polar, \
+ax2.imshow(imData_polar, \
         extent=(rmin, rmax, tmin/np.pi*180, tmax/np.pi*180),\
         aspect='auto', origin='lower')
-ax.set_xlabel(r"$r$")
-ax.set_ylabel(r"$\phi$ (deg)")
+ax2.set_xlabel(r"$r$")
+ax2.set_ylabel(r"$\phi$ (deg)")
 
-ax = fig.add_subplot(2,3,4)
+ax4 = fig.add_subplot(2,2,4, sharex=ax2)
 fr = np.sum(imData_polar, axis=0)
-ax.plot(fr, 'b-')
-ax.set_xlabel("r index")
+ax4.plot(fr, 'b-')
+ax4.set_xlabel("r index")
+plt.show()
 
 # find the three peaks
+# first let user select 
 rpeaks_ind = np.array([
                 100 + np.argmax(fr[100:200]),
                 250 + np.argmax(fr[250:350]),
@@ -132,3 +129,4 @@ plt.show()
 import pickle
 params = {'pad': pad, 'x0': x0, 'y0': y0, 'D': D, 'intercept': intercept}
 pickle.dump(params, open("calibration_2.pickle", 'wb'))
+'''
