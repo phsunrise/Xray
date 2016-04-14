@@ -3,8 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import RectangleSelector
 from matplotlib import patches
-import PIL.Image
 import pickle
+from helpers import get_data
 
 ## initialization
 pads = np.zeros((4,4))
@@ -14,7 +14,6 @@ i_pad = 0
 
 def sortpads(pads):
 ## this funciton sorts the "pads" array to meet the format
-    print pads
     pads1 = np.copy(pads)
     pads2 = np.copy(pads)
     # first sort each pad
@@ -30,7 +29,6 @@ def sortpads(pads):
     pads2 = np.array([pads1[args[0]], pads1[args[1]],
                       pads1[args[2]], pads1[args[3]]])
     pads1 = np.copy(pads2)
-    print pads1
     
     # now sort x direction
     if pads1[0,0] > pads1[1,0]:
@@ -38,7 +36,6 @@ def sortpads(pads):
     if pads1[2,0] > pads1[3,0]:
         pads2[2], pads2[3] = pads1[3], pads1[2]
     pads1 = np.copy(pads2)
-    print pads1
 
     return pads1
 
@@ -82,11 +79,7 @@ def toggle_selector(event):
 pad = 2
 run = 389
 img = 1 
-imFile = PIL.Image.open(
-    "LA61_MgO_analysis/MgO_CSPAD/image_cspad%02d_r%04d_e%05d.tif" 
-    % (pad, run, img))
-nx, ny = imFile.size
-imData_orig = np.array(imFile.getdata()).reshape((ny, nx)).astype(float)
+imData_orig = getdata(pad, run, img) 
 # enhance contrast at low values
 immin = np.min(imData_orig)
 immax = np.max(imData_orig)
@@ -96,16 +89,13 @@ val = ''
 while val not in ['q', 'Q', 'quit', 'exit', 'Exit']:
     if val in ['s', 'S', 'save']: # save pad locations
         pads = sortpads(pads) # sort pads to meet format
-        if os.path.isfile("calibration.pickle"):
-            data = pickle.load(open("calibration.pickle", 'rb'))
-        else:
-            data = {}
+        data = pickle.load(open("parameters.pickle", 'r'))
         try:
             data[pad]['pads'] = pads
             data[pad]['pads_format'] = pads_format
         except KeyError:
             data[pad] = {'pads': pads, 'pads_format': pads_format}
-        pickle.dump(data, open("calibration.pickle", 'wb'))
+        pickle.dump(data, open("parameters.pickle", 'w'))
         break
     elif val != '':
         try:
@@ -141,4 +131,4 @@ while val not in ['q', 'Q', 'quit', 'exit', 'Exit']:
         ax = plt.gca()
         showpads(pads, ax)
 
-    val = raw_input("Enter contrast factor, s to save, or \'q\' to exit: ")
+    val = raw_input("Enter contrast factor, 's' to save, or \'q\' to exit: ")

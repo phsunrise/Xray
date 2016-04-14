@@ -3,23 +3,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import PIL.Image
+import pickle
+
 from fitcircle import fitcircle
 from roipoly import roipoly
-from process_2 import findind
+from helpers import findind, get_data, get_pads
 
 # Read data file into an array
 pad = 2
 run = 389
 img = 1 
-imFile = PIL.Image.open(
-    "LA61_MgO_analysis/MgO_CSPAD/image_cspad%02d_r%04d_e%05d.tif" 
-    % (pad, run, img))
-imFile_bkgd = PIL.Image.open(
-    "LA61_MgO_analysis/MgO_CSPAD/image_cspad%02d_r%04d_e%05d.tif" 
-    % (pad, 401, 0)) # assume this to be the background
-nx, ny = imFile.size
-imData = np.array(imFile.getdata()).reshape((ny, nx)).astype(float)
-imData_bkgd = np.array(imFile_bkgd.getdata()).reshape((ny, nx)).astype(float)
+run_bkgd = 401
+imData = get_data(pad, run, img)
+ny, nx = imData.shape
+imData_bkgd = get_data(pad, run_bkgd, 0) 
 imData = imData - imData_bkgd
 
 # Display the image
@@ -88,7 +85,6 @@ ax4.set_xlabel("r index")
 plt.show()
 
 # find the three peaks
-# first let user select 
 rpeaks_ind = np.array([
                 100 + np.argmax(fr[100:200]),
                 250 + np.argmax(fr[250:350]),
@@ -126,7 +122,9 @@ ax.set_ylim(ymin, ymax)
 plt.show()
 
 ## save data to file
-import pickle
-params = {'pad': pad, 'x0': x0, 'y0': y0, 'D': D, 'intercept': intercept}
-pickle.dump(params, open("calibration_2.pickle", 'wb'))
-'''
+val = raw_input("Save data to file?")
+if val in ['y', 'Y', 'yes', 'Yes', 's', 'S']:
+    params = {'pad': pad, 'x0': x0, 'y0': y0, 'D': D, 'intercept': intercept}
+    data = pickle.load(open("calibration", 'rb'))
+    data[pad] = params
+    pickle.dump(params, open("calibration.pickle", 'wb'))

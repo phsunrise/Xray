@@ -3,21 +3,10 @@ from getopt import getopt
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.optimize import curve_fit, leastsq
-import PIL.Image
-from fitcircle import fitcircle
-
-def findind(x, x_array): # assume x_array is evenly spaced
-    if len(x_array) <= 1:
-        return 0
-    dx = x_array[1]-x_array[0] 
-    xx = int((x-x_array[0]) / dx)
-    if xx < 0:
-        return 0
-    elif xx >= len(x_array):
-        return len(x_array)-1
-    else:
-        return xx 
+from matplotlib.patches import Rectangle
+from matplotlib.widgets import SpanSelector 
+from scipy.optimize import curve_fit
+from helpers import findind, get_data, get_pads
 
 def fitfunc(x, *params):
 # parameter format:
@@ -31,56 +20,18 @@ def fitfunc(x, *params):
 
 def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
     # Read data file into an array
-    imFile = PIL.Image.open(
-        "LA61_MgO_analysis/MgO_CSPAD/image_cspad%02d_r%04d_e%05d.tif" 
-        % (pad, run, img))
-    imFile_bkgd = PIL.Image.open(
-        "LA61_MgO_analysis/MgO_CSPAD/image_cspad%02d_r%04d_e%05d.tif" 
-        % (pad, run_bkgd, 0)) # assume this to be the background
-    nx, ny = imFile.size
-    imData = np.array(imFile.getdata()).reshape((ny, nx)).astype(float)
-    imData_bkgd = np.array(imFile_bkgd.getdata()).reshape((ny, nx)).astype(float)
+    imData = get_data(pad, run, img) 
+    imData_bkgd = get_data(pad, run_bkgd, 0) 
+    ny, nx = imData.shape
 
-    # these two arrays define the position of the four pads
-    pads_x = [12, 190, 197, 385] 
-    pads_y = [0, 184, 212, 395]
-    #fig = plt.figure()
-    ## pad 1
-    #ax = fig.add_subplot(2,2,1)
-    #pad = imData[pads_y[0]:pads_y[1], pads_x[0]:pads_x[1]]
-    #pad_bkgd = imData_bkgd[pads_y[0]:pads_y[1], pads_x[0]:pads_x[1]]
-    #ax.plot(np.sum(pad, axis=0)+np.sum(pad_bkgd[:, 10])-np.sum(pad[:, 10]), 'r-')
-    #ax.plot(np.sum(pad_bkgd, axis=0), 'b-')
-    ## pad 2 
-    #ax = fig.add_subplot(2,2,2)
-    #pad = imData[pads_y[0]:pads_y[1], pads_x[2]:pads_x[3]]
-    #pad_bkgd = imData_bkgd[pads_y[0]:pads_y[1], pads_x[2]:pads_x[3]]
-    #ax.plot(np.sum(pad, axis=0)+np.sum(pad_bkgd[:, 10])-np.sum(pad[:, 10]), 'r-')
-    #ax.plot(np.sum(pad_bkgd, axis=0), 'b-')
-    ## pad 3 
-    #ax = fig.add_subplot(2,2,3)
-    #pad = imData[pads_y[2]:pads_y[3], pads_x[0]:pads_x[1]]
-    #pad_bkgd = imData_bkgd[pads_y[2]:pads_y[3], pads_x[0]:pads_x[1]]
-    #ax.plot(np.sum(pad, axis=0), 'r-')
-    #ax.plot(np.sum(pad_bkgd, axis=0), 'b-')
-    ## pad 4 
-    #ax = fig.add_subplot(2,2,4)
-    #pad = imData[pads_y[2]:pads_y[3], pads_x[2]:pads_x[3]]
-    #pad_bkgd = imData_bkgd[pads_y[2]:pads_y[3], pads_x[2]:pads_x[3]]
-    #ax.plot(np.sum(pad, axis=0), 'r-')
-    #ax.plot(np.sum(pad_bkgd, axis=0), 'b-')
-    #
-    #plt.show()
+    # get position of the four pads
+    pads = get_pads(pad) 
 
     if bkgdSubtract:
         imData = imData - imData_bkgd
-
-    ## subtract average background
-    #imData = imData - np.mean(imData[0:150, 0:150])
-    #imData[imData < 0.] = 0.
     
     ## read calibration data
-    params = pickle.load(open("calibration_2.pickle", 'rb'))
+    params = pickle.load(open("calibration.pickle", 'rb'))[pad]
     x0 = params['x0']
     y0 = params['y0']
     D = params['D']
@@ -105,16 +56,9 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
     for y in range(ny):
         for x in range(nx):
             pad = -1
-            if pads_x[0]<x and x<pads_x[1]:
-                if pads_y[0]<y and y<pads_y[1]:
-                    pad = 0
-                elif pads_y[2]<y and y<pads_y[3]:
-                    pad = 2
-            elif pads_x[2]<x and x<pads_x[3]:
-                if pads_y[0]<y and y<pads_y[1]:
-                    pad = 1 
-                elif pads_y[2]<y and y<pads_y[3]:
-                    pad = 3
+            for i in xrange(4):
+                if pads[i,0]<x and x<pads[i,2] and pads[i,1]<y and y<pads[i,3]:
+                    pad = i
             if pad >= 0:
                 r = np.sqrt((x-x0)**2 + (y-y0)**2)
                 t = np.arctan((y-y0) / (x-x0))
@@ -132,12 +76,10 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
         ## Display the image
         ax1 = fig.add_subplot(2,2,1)
         ax1.imshow(imData, origin='lower')
-        xmin, xmax = ax1.get_xlim()
-        ymin, ymax = ax1.get_ylim()
-        ax1.vlines(pads_x, ymin, ymax, colors='r', linestyles='--')
-        ax1.hlines(pads_y, xmin, xmax, colors='r', linestyles='--')
-        ax1.set_xlim(xmin, xmax)
-        ax1.set_ylim(ymin, ymax)
+        for i in xrange(4):
+            ax1.add_patch(Rectangle((pads[i,0], pads[i,1]), \
+                        pads[i,2]-pads[i,0], pads[i,3]-pads[i,1],\
+                        fill=False, ls='--', color='r'))
 
         ## display image in polar coordiantes before adjusting for offset
         ax2 = fig.add_subplot(2,2,2)
@@ -208,20 +150,10 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
     for y in range(ny):
         for x in range(nx):
             pad = -1
-            if pads_x[0]<x and x<pads_x[1]:
-                if pads_y[0]<y and y<pads_y[1]:
-                    pad = 0
-                    imData[y,x] -= offset3 + offset4
-                elif pads_y[2]<y and y<pads_y[3]:
-                    pad = 2
-                    imData[y,x] -= offset1 + offset2 + offset3 + offset4
-            elif pads_x[2]<x and x<pads_x[3]:
-                if pads_y[0]<y and y<pads_y[1]:
-                    pad = 1 
-                    imData[y,x] -= offset4
-                elif pads_y[2]<y and y<pads_y[3]:
-                    pad = 3
-                    imData[y,x] -= offset2 + offset3 + offset4
+            for i in xrange(4):
+                if pads[i,0]<x and x<pads[i,2] and pads[i,1]<y and y<pads[i,3]:
+                    pad = i
+
             if pad >= 0:
                 r = np.sqrt((x-x0)**2 + (y-y0)**2)
                 t = np.arctan((y-y0) / (x-x0))
@@ -254,9 +186,11 @@ if __name__=="__main__":
     bkgdSubtract = True
 
     # parse command line arguments 
-    opts, args = getopt(sys.argv[1:], "r:i:b:p:d")
+    opts, args = getopt(sys.argv[1:], "p:r:i:b:n:d")
     for opt, arg in opts:
-        if opt == '-d':
+        if opt == '-p':
+            pad = int(arg)
+        elif opt == '-d':
             do_debug = True
         elif opt == '-r':
             run = int(arg)
@@ -265,13 +199,14 @@ if __name__=="__main__":
         elif opt == '-b':
             run_bkgd = int(arg)
             bkgdSubtract = True
-        elif opt == '-p':
+        elif opt == '-n':
             Npeaks = int(arg)
     
     # process (adjust pad offset)
     imData_polar, rr, tt, twotheta, fr = process(pad, run, img, run_bkgd, \
                                          do_debug, bkgdSubtract)
     
+    # plot data after process
     fig = plt.figure(figsize=(7.5, 15))
     ax1 = fig.add_subplot(2,1,1)
     ax1.imshow(imData_polar, \
