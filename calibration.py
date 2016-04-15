@@ -11,10 +11,14 @@ from helpers import findind, get_data
 
 # Read data file into an array
 pad = 2
+#pad = 0
 run = 389
 img = 1 
 run_bkgd = 401
+# for pad 2
 twotheta_deg = np.array([47.9, 57.4, 63.1]) # array for peaks
+# for pad 0
+#twotheta_deg = np.array([32.2, 34.4, 36.7, 47.9])
 tantwotheta = np.tan(twotheta_deg/180.*np.pi)
 imData = get_data(pad, run, img)
 ny, nx = imData.shape
