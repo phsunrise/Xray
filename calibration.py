@@ -45,6 +45,7 @@ imData = imData - imData_bkgd
 N_circ = len(twotheta_deg) 
 ROI = []
 mask = []
+print "Please select regions starting from smallest radius."
 for i_circ in xrange(N_circ):
     fig = plt.figure(figsize=(10,10))
     ax = fig.add_subplot(1,1,1)
