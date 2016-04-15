@@ -1,6 +1,8 @@
 import sys, os
 import numpy as np
+from getopt import getopt
 import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
 from scipy.optimize import curve_fit
 import PIL.Image
 import pickle
@@ -14,11 +16,26 @@ pad = 0
 run = 389
 img = 1 
 run_bkgd = 401
+
+# parse command line arguments 
+opts, args = getopt(sys.argv[1:], "p:r:i:b:")
+for opt, arg in opts:
+    if opt == '-p':
+        pad = int(arg)
+    elif opt == '-r':
+        run = int(arg)
+    elif opt == '-i':
+        img = int(arg)
+    elif opt == '-b':
+        run_bkgd = int(arg)
+        bkgdSubtract = True
+ 
 if pad == 2:
     twotheta_deg = np.array([47.9, 57.4, 63.1]) # array for peaks
 elif pad == 0:
     twotheta_deg = np.array([32.2, 34.4, 36.7, 47.9])
 tantwotheta = np.tan(twotheta_deg/180.*np.pi)
+
 imData = get_data(pad, run, img)
 ny, nx = imData.shape
 imData_bkgd = get_data(pad, run_bkgd, 0) 
@@ -63,9 +80,8 @@ xmin, xmax = ax1.get_xlim()
 ymin, ymax = ax1.get_ylim()
 for i_circ in xrange(N_circ):
     r = r0*tantwotheta[i_circ]
-    cir_x = np.linspace(x0-r+0.5, x0+r-0.5, 200)
-    cir_y = y0 - np.sqrt(r**2 - (cir_x-x0)**2)
-    ax1.plot(cir_x, cir_y, 'r-')
+    ax1.add_patch(Circle((x0, y0), radius=r, color='r', fill=False,\
+                          ls='-'))
 ax1.set_xlim(xmin, xmax)
 ax1.set_ylim(ymin, ymax)
 
@@ -103,13 +119,13 @@ ax4.plot(rr, fr, 'b-')
 ax4.set_xlabel(r"$r$")
 
 for i in xrange(N_circ):
-    ax4.axvline(x=tantwotheta[i]*r0, ls='--')
+    ax4.axvline(x=tantwotheta[i]*r0, ls='--', c='k')
 
 # plot against 2theta
 ax3 = fig.add_subplot(2,2,3)
 ax3.plot(np.arctan(rr/r0)/np.pi*180, fr, 'b-')
 for i in xrange(N_circ):
-    ax3.axvline(x=twotheta_deg[i], ls='--')
+    ax3.axvline(x=twotheta_deg[i], ls='--', c='k')
 ax3.set_xlabel(r"$2\theta$ (deg)")
 
 plt.show()
@@ -119,6 +135,6 @@ val = raw_input("Save data to file? ")
 if val in ['y', 'Y', 'yes', 'Yes', 's', 'S']:
     params = {'pad': pad, 'x0': x0, 'y0': y0, 'D': r0, \
               'r_array': rr, 't_array': tt}
-    data = pickle.load(open("calibration", 'rb'))
+    data = pickle.load(open("calibration.pickle", 'rb'))
     data[pad] = params
     pickle.dump(params, open("calibration.pickle", 'wb'))
