@@ -39,3 +39,13 @@ def get_data(pad, run, img):
 
     return imData
     
+
+## read calibration data
+def get_calib(pad):
+    params = pickle.load(open("calibration.pickle", 'rb'))[pad]
+    x0 = params['x0']
+    y0 = params['y0']
+    D = params['D']
+    intercept = params['intercept']
+
+    return x0, y0, D, intercept
