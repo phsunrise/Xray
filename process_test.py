@@ -177,12 +177,11 @@ if __name__=="__main__":
         run_bkgd = 373
         #run_bkgd = 390
     #run_bkgd = 334
-    Npeaks = 2
     do_debug = False 
     bkgdSubtract = True
 
     # parse command line arguments 
-    opts, args = getopt(sys.argv[1:], "p:r:i:b:n:d")
+    opts, args = getopt(sys.argv[1:], "p:r:i:b:d")
     for opt, arg in opts:
         if opt == '-p':
             pad = int(arg)
@@ -195,8 +194,6 @@ if __name__=="__main__":
         elif opt == '-b':
             run_bkgd = int(arg)
             bkgdSubtract = True
-        elif opt == '-n':
-            Npeaks = int(arg)
     
     # process (adjust pad offset)
     imData_polar, rr, tt, twotheta, fr = process(pad, run, img, run_bkgd, \
@@ -290,6 +287,12 @@ if __name__=="__main__":
     sys.exit()
 
     # now fit peaks + background
+    # Let user choose approximate peak positions (using rectangular regions)
+    peaks = []
+    def onselect(eclick, erelease):
+        x1, x2 = 
+        m = (ereleast.xdata-eclick.xdata
+
     # setting initial values
     m1 = 390 # mean
     m1_ind = findind(m1, rr)
