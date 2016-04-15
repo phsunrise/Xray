@@ -276,13 +276,16 @@ if __name__=="__main__":
     b0 = -np.log(fr[maskmin]/fr[maskmax])/(rr[maskmin]-rr[maskmax])
     a0 = fr[maskmin]/np.exp(-b0*rr[maskmin])
     c0 = 0.
-    popt, pcov = curve_fit(bkgd_fit, rr[mask], fr[mask], p0=[a0, b0, c0])
+    fit_mask = fit_mask.astype(bool)
+    popt, pcov = curve_fit(bkgd_fit, rr[fit_mask], fr[fit_mask], p0=[a0, b0, c0])
     a0, b0, c0 = popt
     print "fit:", popt, np.sqrt(np.diag(pcov))
 
+    plt.plot(twotheta_deg[maskmin:maskmax], fr[maskmin:maskmax], 'b-', \
+             label='orig.')
     plt.plot(twotheta_deg[maskmin:maskmax], a0*np.exp(-b0*rr[maskmin:maskmax])+c0, \
-             label='bkgd fit')
-    plt.xlabel(r"$2\theta$ (deg)" )
+             'r-', label='bkgd fit')
+    plt.xlabel(r"$2\theta$ (deg)")
     plt.show()
     sys.exit()
 
