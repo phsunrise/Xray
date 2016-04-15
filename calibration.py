@@ -89,6 +89,7 @@ ax1.set_ylim(ymin, ymax)
 ## convert to polar coordinates
 ax2 = fig.add_subplot(2,2,2)
 # find the extent by looking at the corners
+# FIXME: need to consider when center is on pad
 y_corners = np.array([0, 0, ny-1, ny-1])
 x_corners = np.array([0, nx-1, 0, nx-1])
 rmin = min(np.sqrt((x_corners-x0)**2 + (y_corners-y0)**2))
@@ -135,7 +136,12 @@ plt.show()
 val = raw_input("Save data to file? ")
 if val in ['y', 'Y', 'yes', 'Yes', 's', 'S']:
     params = {'pad': pad, 'x0': x0, 'y0': y0, 'D': r0, \
-              'r_array': rr, 't_array': tt}
-    data = pickle.load(open("calibration.pickle", 'rb'))
+              'r_array': rr, 't_array': tt, \
+              'twotheta_deg': np.arctan(rr/r0)/np.pi*180}
+    if os.path.isfile("calibration.pickle"):
+        data = pickle.load(open("calibration.pickle", 'rb'))
+    else:
+        data = {}
     data[pad] = params
-    pickle.dump(params, open("calibration.pickle", 'wb'))
+    pickle.dump(data, open("calibration.pickle", 'wb'))
+    print "Data saved."
