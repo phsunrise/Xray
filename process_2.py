@@ -10,7 +10,7 @@ from helpers import findind, get_data, get_pads, get_calib
 
 def fitfunc(x, *params):
 # parameter format:
-# background: params[0]*np.exp(-params[1]*x)+params[2]
+# background (exponential): params[0]*np.exp(-params[1]*x)+params[2]
 # starting from params[3], gaussian peaks: 
 #     params[i]*np.exp(-0.5*((x-params[i+1])/params[i+2])**2)
     y = params[0]*np.exp(-params[1]*x)+params[2]
@@ -31,22 +31,11 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
         imData = imData - imData_bkgd
     
     ## read calibration data
-    x0, y0, D, intercept = get_calib(pad)
+    x0, y0, D, rr, tt = get_calib(pad)
+    nr = len(rr)
+    nt = len(tt)
 
     ## convert to polar coordinates
-    # find the extent by looking at the corners
-    y_corners = np.array([0, 0, ny-1, ny-1])
-    x_corners = np.array([0, nx-1, 0, nx-1])
-    rmin = min(np.sqrt((x_corners-x0)**2 + (y_corners-y0)**2))
-    rmax = max(np.sqrt((x_corners-x0)**2 + (y_corners-y0)**2))
-    nr = 500
-    rr = np.linspace(rmin, rmax, nr, endpoint=False) # r coordinates
-    twotheta = np.arctan((rr-intercept)/D)
-    tmin = min(np.arctan((y_corners-y0) / (x_corners-x0)))
-    tmax = max(np.arctan((y_corners-y0) / (x_corners-x0)))
-    nt = 500
-    tt = np.linspace(tmin, tmax, nt, endpoint=False) # t coordinates
-
     imData_polar = np.zeros((4, nt, nr))
     onPad = np.zeros((4, nt, nr))
     for y in range(ny):

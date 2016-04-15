@@ -5,48 +5,64 @@ from scipy.optimize import curve_fit
 import PIL.Image
 import pickle
 
-from fitcircle import fitcircle
+from fitcircle import fitconccircle
 from roipoly import roipoly
-from helpers import findind, get_data, get_pads
+from helpers import findind, get_data
 
 # Read data file into an array
 pad = 2
 run = 389
 img = 1 
 run_bkgd = 401
+twotheta_deg = np.array([47.9, 57.4, 63.1]) # array for peaks
+tantwotheta = np.tan(twotheta_deg/180.*np.pi)
 imData = get_data(pad, run, img)
 ny, nx = imData.shape
 imData_bkgd = get_data(pad, run_bkgd, 0) 
 imData = imData - imData_bkgd
 
-# Display the image
-fig = plt.figure(figsize=(10,10))
-ax = fig.add_subplot(1,1,1)
-ax.imshow(imData, origin='lower')
-ax.set_title("Select polygon region: right or double click to finish")
-
 # use ROI to select region
-ROI = roipoly(roicolor='r')
-#plt.imshow(imData, origin='lower')
-#ROI.displayROI()
-mask = np.logical_and(ROI.getMask(imData), imData>0.3*np.max(imData))
-#plt.imshow(mask, origin='lower', cmap='Greys')
+N_circ = len(twotheta_deg) 
+ROI = []
+mask = []
+for i_circ in xrange(N_circ):
+    fig = plt.figure(figsize=(10,10))
+    ax = fig.add_subplot(1,1,1)
+    ax.imshow(imData, origin='lower')
+    for i in xrange(i_circ):
+        ROI[i].displayROI()
+    ax.set_title("Select region %d: right or double click to finish" % (i_circ+1))
 
-## fit to circle, weight by intensity
+    ROI.append(roipoly(roicolor='r'))
+    mask.append(np.logical_and(ROI[i_circ].getMask(imData), \
+                imData>0.5*np.max(imData[ROI[i_circ].getMask(imData)]))
+               )
+
+# fit to circle, weight by intensity
 xx, yy = np.meshgrid(np.arange(nx), np.arange(ny))
-x0, y0, r0 = fitcircle(xx[mask], yy[mask], imData[mask])
+X = np.array([])
+Y = np.array([])
+R = np.array([])
+weights = np.array([])
+for i_circ in xrange(N_circ):
+    X = np.concatenate((X, xx[mask[i_circ]]))
+    Y = np.concatenate((Y, yy[mask[i_circ]]))
+    R = np.concatenate((R, np.ones(np.sum(mask[i_circ]))*tantwotheta[i_circ]))
+    weights = np.concatenate((weights, imData[mask[i_circ]]))
+    
+x0, y0, r0 = fitconccircle(X, Y, R, weights)
 print "x0, y0, r0 =", x0, y0, r0
-# draw the image and the circle
-cir_x = np.linspace(x0-r0+0.5, x0+r0-0.5, 500)
-cir_y = y0 - np.sqrt(r0**2 - (cir_x-x0)**2)
-
-fig = plt.figure()
+# draw the image and the circles
+fig = plt.figure(figsize=(10,10))
 ax1 = fig.add_subplot(2,2,1)
 ax1.imshow(imData, origin='lower')
 xmin, xmax = ax1.get_xlim()
 ymin, ymax = ax1.get_ylim()
-
-ax1.plot(cir_x, cir_y, 'r-')
+for i_circ in xrange(N_circ):
+    r = r0*tantwotheta[i_circ]
+    cir_x = np.linspace(x0-r+0.5, x0+r-0.5, 200)
+    cir_y = y0 - np.sqrt(r**2 - (cir_x-x0)**2)
+    ax1.plot(cir_x, cir_y, 'r-')
 ax1.set_xlim(xmin, xmax)
 ax1.set_ylim(ymin, ymax)
 
@@ -57,7 +73,7 @@ y_corners = np.array([0, 0, ny-1, ny-1])
 x_corners = np.array([0, nx-1, 0, nx-1])
 rmin = min(np.sqrt((x_corners-x0)**2 + (y_corners-y0)**2))
 rmax = max(np.sqrt((x_corners-x0)**2 + (y_corners-y0)**2))
-nr = 500
+nr = 500 
 rr = np.linspace(rmin, rmax, nr, endpoint=False) # r coordinates
 tmin = min(np.arctan((y_corners-y0) / (x_corners-x0)))
 tmax = max(np.arctan((y_corners-y0) / (x_corners-x0)))
@@ -80,51 +96,26 @@ ax2.set_ylabel(r"$\phi$ (deg)")
 
 ax4 = fig.add_subplot(2,2,4, sharex=ax2)
 fr = np.sum(imData_polar, axis=0)
-ax4.plot(fr, 'b-')
-ax4.set_xlabel("r index")
-plt.show()
+ax4.plot(rr, fr, 'b-')
+ax4.set_xlabel(r"$r$")
 
-# find the three peaks
-rpeaks_ind = np.array([
-                100 + np.argmax(fr[100:200]),
-                250 + np.argmax(fr[250:350]),
-                400 + np.argmax(fr[400:500])
-                ])
-rpeaks = rr[rpeaks_ind]
-ymin, ymax = ax.get_ylim()
-ax.vlines(rpeaks_ind, ymin, ymax, linestyles='dashed')
-ax.set_ylim(ymin, ymax)
+for i in xrange(N_circ):
+    ax4.axvline(x=tantwotheta[i]*r0, ls='--')
 
-## calibration
-twotheta = np.array([47.9, 57.4, 63.1])
-tantwotheta = np.tan(twotheta/180.*np.pi)
-# use linear regression to find d in r = d*tan(2*theta)
-from scipy.stats import linregress
-D, intercept, r_val, p_val, std = linregress(tantwotheta, rpeaks)
-print "D =", D, "intercept =", intercept
-print "r^2 =", r_val**2
-
-# plot calibrated values
-ax = fig.add_subplot(2,3,5)
-
-#ax.plot(tantwotheta, rpeaks, 'ro')
-#x = np.linspace(np.tan(30*np.pi/180), np.tan(50*np.pi/180), 100)
-#y = d * x + intercept
-#ax.plot(x, y, 'b-')
-
-ax.plot(np.arctan((rr-intercept)*1./D)/np.pi*180, fr, 'b-')
-ax.set_xlabel(r"$2\theta$ (deg)")
-# plot vertical lines
-ymin, ymax = ax.get_ylim()
-ax.vlines(twotheta, ymin, ymax, linestyles='dashed')
-ax.set_ylim(ymin, ymax)
+# plot against 2theta
+ax3 = fig.add_subplot(2,2,3)
+ax3.plot(np.arctan(rr/r0)/np.pi*180, fr, 'b-')
+for i in xrange(N_circ):
+    ax3.axvline(x=twotheta_deg[i], ls='--')
+ax3.set_xlabel(r"$2\theta$ (deg)")
 
 plt.show()
 
 ## save data to file
-val = raw_input("Save data to file?")
+val = raw_input("Save data to file? ")
 if val in ['y', 'Y', 'yes', 'Yes', 's', 'S']:
-    params = {'pad': pad, 'x0': x0, 'y0': y0, 'D': D, 'intercept': intercept}
+    params = {'pad': pad, 'x0': x0, 'y0': y0, 'D': r0, \
+              'r_array': rr, 't_array': tt}
     data = pickle.load(open("calibration", 'rb'))
     data[pad] = params
     pickle.dump(params, open("calibration.pickle", 'wb'))
