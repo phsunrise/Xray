@@ -72,11 +72,11 @@ while True:
             print "All four pads have been chosen! Closing plot..."
             plt.close()
         # eclick and erelease are the press and release events
-        x1, y1 = eclick.xdata, eclick.ydata
-        x2, y2 = erelease.xdata, erelease.ydata
-        print("Pad %d selected: (%3.2f, %3.2f) --> (%3.2f, %3.2f)" % (i_pad, x1, y1, x2, y2))
-        x1, x2 = min(x1, x2), max(x1, x2)
-        y1, y2 = min(y1, y2), max(y1, y2)
+        x1, y1 = int(eclick.xdata), int(eclick.ydata)
+        x2, y2 = int(erelease.xdata), int(erelease.ydata)
+        print("Pad %d selected: (%d, %d) --> (%d, %d)" % (i_pad+1, x1, y1, x2, y2))
+        x1, x2 = min(x1, x2)+1, max(x1, x2)
+        y1, y2 = min(y1, y2)+1, max(y1, y2)
         pads[i_pad] = x1, y1, x2, y2
         ax.add_patch(Rectangle((x1, y1), x2-x1, y2-y1, \
                                color='g', fill=True, alpha=0.5))
