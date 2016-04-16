@@ -187,6 +187,7 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
         thisrun['Npeaks'] = len(params)/3 - 1
         thisrun['params'] = params
         thisrun['params_err'] = np.sqrt(np.diag(params_cov))
+        thisrun['offset'] = offset
         data[run] = thisrun
         pickle.dump(data, open("data_%d.pickle" % pad, 'wb'))
         print "Data saved."
