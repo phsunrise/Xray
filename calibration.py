@@ -94,11 +94,11 @@ y_corners = np.array([0, 0, ny-1, ny-1])
 x_corners = np.array([0, nx-1, 0, nx-1])
 rmin = min(np.sqrt((x_corners-x0)**2 + (y_corners-y0)**2))
 rmax = max(np.sqrt((x_corners-x0)**2 + (y_corners-y0)**2))
-nr = 500 
+nr = 300 
 rr = np.linspace(rmin, rmax, nr, endpoint=False) # r coordinates
 tmin = min(np.arctan((y_corners-y0) / (x_corners-x0)))
 tmax = max(np.arctan((y_corners-y0) / (x_corners-x0)))
-nt = 500
+nt = 300
 tt = np.linspace(tmin, tmax, nt, endpoint=False) # t coordinates
 
 imData_polar = np.zeros((nt, nr))

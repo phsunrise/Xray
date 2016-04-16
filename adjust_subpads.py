@@ -83,7 +83,7 @@ def adjust_subpads(imData, pad, fixpad=0, do_debug=False):
         # first find the unadjusted subpad that has the largest overlap
         # with current_pad
         overlap = 0
-        adj_pad = 0
+        adj_pad = fixpad 
         for i_pad in xrange(Npads):
             if adjusted[i_pad]:
                 continue
@@ -95,7 +95,7 @@ def adjust_subpads(imData, pad, fixpad=0, do_debug=False):
         # with adj_pad
         overlap = 0
         current_pad = adj_pad
-        adj_pad = 0 
+        adj_pad = fixpad 
         for i_pad in xrange(Npads):
             if not adjusted[i_pad]:
                 continue
