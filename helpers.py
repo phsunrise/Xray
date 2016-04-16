@@ -46,6 +46,8 @@ def get_calib(pad):
     x0 = params['x0']
     y0 = params['y0']
     D = params['D']
-    intercept = params['intercept']
+    rr = params['r_array']
+    tt = params['t_array']
+    twotheta_deg = params['twotheta_deg']
 
-    return x0, y0, D, intercept
+    return x0, y0, D, rr, tt, twotheta_deg
