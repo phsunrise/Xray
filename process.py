@@ -29,7 +29,10 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
         imData = imData - imData_bkgd
 
     fixpad = 0
-    imData_polar, rr, tt, twotheta_deg, fr, offset = adjust_subpads(imData, pad, fixpad, do_debug)
+    figname = "r%04d_i%02d_rb%04d_offsets" % (run, img, run_bkgd)
+    imData_polar, rr, tt, twotheta_deg, fr, offset = adjust_subpads(imData, pad, \
+                                            fixpad=fixpad, do_debug=do_debug, \
+                                            figname=figname)
     
     # plot data after process
     fig = plt.figure(figsize=(7.5, 15))

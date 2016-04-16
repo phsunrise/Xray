@@ -8,7 +8,7 @@ This module adjusts for offsets on the subpads so that
 they agree on overlapping radial ranges 
 '''
 
-def adjust_subpads(imData, pad, fixpad=0, do_debug=False):
+def adjust_subpads(imData, pad, fixpad=0, do_debug=False, figname='debug'):
 # fixpad is the subpad to be fixed; other pads will be adjusted to this pad 
     ny, nx = imData.shape
     pads = get_pads(pad)
@@ -36,36 +36,34 @@ def adjust_subpads(imData, pad, fixpad=0, do_debug=False):
                       findind(t,tt), \
                       findind(r,rr)] += 1 
 
-    if do_debug:
-        # Create a figure
-        fig = plt.figure()
+    # Create a figure
+    fig = plt.figure()
 
-        ## Display the image
-        ax1 = fig.add_subplot(2,2,1)
-        ax1.imshow(imData, origin='lower')
-        for i in xrange(Npads):
-            ax1.add_patch(Rectangle((pads[i,0], pads[i,1]), \
-                        pads[i,2]-pads[i,0], pads[i,3]-pads[i,1],\
-                        fill=False, ls='--', color='r'))
+    ## Display the image
+    ax1 = fig.add_subplot(2,2,1)
+    ax1.imshow(imData, origin='lower')
+    for i in xrange(Npads):
+        ax1.add_patch(Rectangle((pads[i,0], pads[i,1]), \
+                    pads[i,2]-pads[i,0], pads[i,3]-pads[i,1],\
+                    fill=False, ls='--', color='r'))
 
-        ## display image in polar coordiantes before adjusting for offset
-        ax2 = fig.add_subplot(2,2,2)
-        ax2.imshow(np.sum(imData_polar, axis=0), \
-                extent=(rr[0], rr[-1], tt[0]/np.pi*180, tt[-1]/np.pi*180),\
-                aspect='auto', origin='lower')
+    ## display image in polar coordiantes before adjusting for offset
+    ax2 = fig.add_subplot(2,2,2)
+    ax2.imshow(np.sum(imData_polar, axis=0), \
+            extent=(rr[0], rr[-1], tt[0]/np.pi*180, tt[-1]/np.pi*180),\
+            aspect='auto', origin='lower')
 
     fr = np.zeros((Npads, nr))
     for i_pad in xrange(Npads):
         fr[i_pad] = np.sum(imData_polar[i_pad], axis=0)/np.sum(onPad[i_pad], axis=0)
 
-    if do_debug:
-        # display curves before adjusting for offset
-        ax3 = fig.add_subplot(2,2,3)
-        
-        for i_pad in xrange(Npads):
-            ax3.plot(twotheta_deg, fr[i_pad], label='pad%d'%(i_pad+1))
-        ax3.set_xlabel(r"$2\theta$ (deg)")
-        ax3.legend()
+    # display curves before adjusting for offset
+    ax3 = fig.add_subplot(2,2,3)
+    
+    for i_pad in xrange(Npads):
+        ax3.plot(twotheta_deg, fr[i_pad], label='pad%d'%(i_pad+1))
+    ax3.set_xlabel(r"$2\theta$ (deg)")
+    ax3.legend()
 
     ## adjusting for offsets
     ## Method: starting from fixpad, find the subpad that has the most
@@ -113,12 +111,15 @@ def adjust_subpads(imData, pad, fixpad=0, do_debug=False):
         print "Adjusted pad %d against pad %d" % (current_pad+1, adj_pad+1)
         
     # plot fr after adjusting for offset
+    ax4 = fig.add_subplot(2,2,4)
+    for i_pad in xrange(4):
+        ax4.plot(twotheta_deg, fr[i_pad], label='pad%d'%(i_pad+1))
+    ax4.set_xlabel(r"$2\theta$")
+    ax4.legend()
+
+    fig.savefig(figname+".pdf")
     if do_debug:
-        ax4 = fig.add_subplot(2,2,4)
-        for i_pad in xrange(4):
-            ax4.plot(twotheta_deg, fr[i_pad], label='pad%d'%(i_pad+1))
-        ax4.set_xlabel(r"$2\theta$")
-        ax4.legend()
+        plt.show()
 
     # now redo coordinate change with offsets
     imData_polar = np.zeros((nt, nr))
