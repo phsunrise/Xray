@@ -165,7 +165,7 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
 
         plt.xlabel(r"$2\theta$ (deg)")
         plt.legend()
-        plt.savefig("r%4d_i%2d_rn%4d.pdf" % (run, img, run_bkgd))
+        plt.savefig("r%04d_i%02d_rb%04d.pdf" % (run, img, run_bkgd))
         plt.show()
 
         val = raw_input("Continue? Enter n to redo this step: ")
@@ -174,7 +174,7 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
 
     # save data
     do_save = raw_input("Save data? ")
-    if do_save in ['y', 'yes']:
+    if do_save in ['y', 'Y', 'yes', 's', 'S']:
         if not os.path.isfile("data_%d.pickle" % pad):
             data = {'pad': 2}
             pickle.dump(data, open("data_%d.pickle" % pad, 'wb'))
@@ -186,6 +186,7 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
         thisrun['params_err'] = np.sqrt(np.diag(params_cov))
         data[run] = thisrun
         pickle.dump(data, open("data_%d.pickle" % pad, 'wb'))
+        print "Data saved."
 
 if __name__=="__main__":
     # default values    
