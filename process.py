@@ -20,34 +20,7 @@ def fitfunc(x, *params):
     return y
 
 def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
-    return 0
-
-if __name__=="__main__":
-    # default values    
-    pad = 2
-    run = 360
-    img = 1
-    run_bkgd = 401
-    img_bkgd = 0
-    do_debug = False 
-    bkgdSubtract = True
-
-    # parse command line arguments 
-    opts, args = getopt(sys.argv[1:], "p:r:i:b:d")
-    for opt, arg in opts:
-        if opt == '-p':
-            pad = int(arg)
-        elif opt == '-d':
-            do_debug = True
-        elif opt == '-r':
-            run = int(arg)
-        elif opt == '-i':
-            img = int(arg)
-        elif opt == '-b':
-            run_bkgd = int(arg)
-            bkgdSubtract = True
-    
-    # process (adjust pad offset)
+    # first adjust for subpad offset
     imData = get_data(pad, run, img) 
     imData_bkgd = get_data(pad, run_bkgd, img_bkgd) 
     ny, nx = imData.shape
@@ -85,12 +58,14 @@ if __name__=="__main__":
     ax1_fit.set_title("Please select fit range, then close window.")
     fit_range = [0,0]
     def onselect1(thmin, thmax):
-        global fit_range
         indmin, indmax = np.searchsorted(twotheta_deg, (thmin, thmax))
         indmax = min(len(twotheta_deg)-1, indmax)
-        fit_range = [indmin, indmax]
+        fit_range[0] = indmin
+        fit_range[1] = indmax
+        print "Selected range: (%f, %f)" % (twotheta_deg[fit_range[0]], \
+                                            twotheta_deg[fit_range[1]])
 
-    span1 = SpanSelector(ax1_fit, onselect1, 'horizontal', useblit=True,\
+    span1 = SpanSelector(ax1_fit, onselect1, 'horizontal', \
                         rectprops=dict(alpha=0.5, facecolor='r'), \
                         span_stays=True)
     plt.show()
@@ -99,6 +74,8 @@ if __name__=="__main__":
     while True:
         fig_fit = plt.figure(figsize=(20,10))
         ax1_fit = fig_fit.add_subplot(1,1,1)
+        print "Selected range: (%f, %f)" % (twotheta_deg[fit_range[0]], \
+                                            twotheta_deg[fit_range[1]])
         ax1_fit.plot(twotheta_deg[fit_range[0]:fit_range[1]], \
                      fr[fit_range[0]:fit_range[1]])
         ax1_fit.set_xlabel(r"$2\theta$ (deg)")
@@ -117,7 +94,7 @@ if __name__=="__main__":
                             span_stays=False)
         plt.show()
         
-        val = raw_input("Continue? (Enter n to redo this step: )")
+        val = raw_input("Continue? Enter n to redo this step: ")
         if val not in ['n', 'N']:
             break 
 
@@ -147,7 +124,7 @@ if __name__=="__main__":
         ax_fit.plot(twotheta_deg[fitmin:fitmax], a0*np.exp(-b0*rr[fitmin:fitmax])+c0, \
                  'r-', label='bkgd fit')
         ax_fit.plot(twotheta_deg[fitmin:fitmax], \
-                 fr[fitmin:fitmax]-a0*np.exp(-b0*rr[fitmin:fitmax])+c0, \
+                 fr[fitmin:fitmax]-a0*np.exp(-b0*rr[fitmin:fitmax])-c0, \
                  'g-', label='minus bkgd')
         ax_fit.set_xlabel(r"$2\theta$ (deg)")
         ax_fit.legend()
@@ -197,14 +174,41 @@ if __name__=="__main__":
     # save data
     do_save = raw_input("Save data? ")
     if do_save in ['y', 'yes']:
-        if not os.path.isfile("data_2.pickle"):
+        if not os.path.isfile("data_%d.pickle" % pad):
             data = {'pad': 2}
-            pickle.dump(data, open("data_2.pickle", 'wb'))
-        data = pickle.load(open("data_2.pickle", 'rb'))
-        thisrun = {'img': img, 'run_bkgd': run_bkgd, 'twotheta': twotheta,\
+            pickle.dump(data, open("data_%d.pickle" % pad, 'wb'))
+        data = pickle.load(open("data_%d.pickle" % pad, 'rb'))
+        thisrun = {'img': img, 'run_bkgd': run_bkgd, 'twotheta_deg': twotheta_deg,\
                    'fr': fr, 'bkgdSubtract': bkgdSubtract}
         thisrun['Npeaks'] = len(params)/3 - 1
         thisrun['params'] = params
         thisrun['params_err'] = np.sqrt(np.diag(params_cov))
         data[run] = thisrun
-        pickle.dump(data, open("data_2.pickle", 'wb'))
+        pickle.dump(data, open("data_%d.pickle" % pad, 'wb'))
+
+if __name__=="__main__":
+    # default values    
+    pad = 2
+    run = 360
+    img = 1
+    run_bkgd = 401
+    img_bkgd = 0
+    do_debug = False 
+    bkgdSubtract = True
+
+    # parse command line arguments 
+    opts, args = getopt(sys.argv[1:], "p:r:i:b:d")
+    for opt, arg in opts:
+        if opt == '-p':
+            pad = int(arg)
+        elif opt == '-d':
+            do_debug = True
+        elif opt == '-r':
+            run = int(arg)
+        elif opt == '-i':
+            img = int(arg)
+        elif opt == '-b':
+            run_bkgd = int(arg)
+            bkgdSubtract = True
+ 
+    process(pad, run, img, run_bkgd, do_debug, bkgdSubtract)
