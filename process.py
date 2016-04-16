@@ -165,6 +165,7 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
 
         plt.xlabel(r"$2\theta$ (deg)")
         plt.legend()
+        plt.savefig("r%4d_i%2d_rn%4d.pdf" % (run, img, run_bkgd))
         plt.show()
 
         val = raw_input("Continue? Enter n to redo this step: ")
