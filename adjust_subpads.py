@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 from helpers import findind, get_pads, get_calib
 
 '''
@@ -6,8 +8,9 @@ This module adjusts for offsets on the subpads so that
 they agree on overlapping radial ranges 
 '''
 
-def adjust_subpads(imData, pad, fixpad=0):
+def adjust_subpads(imData, pad, fixpad=0, do_debug=False):
 # fixpad is the subpad to be fixed; other pads will be adjusted to this pad 
+    ny, nx = imData.shape
     pads = get_pads(pad)
     Npads = pads.shape[0]
     x0, y0, D, rr, tt, twotheta_deg = get_calib(pad)
@@ -48,7 +51,7 @@ def adjust_subpads(imData, pad, fixpad=0):
         ## display image in polar coordiantes before adjusting for offset
         ax2 = fig.add_subplot(2,2,2)
         ax2.imshow(np.sum(imData_polar, axis=0), \
-                extent=(rmin, rmax, tmin/np.pi*180, tmax/np.pi*180),\
+                extent=(rr[0], rr[-1], tt[0]/np.pi*180, tt[-1]/np.pi*180),\
                 aspect='auto', origin='lower')
 
     fr = np.zeros((Npads, nr))
@@ -68,7 +71,7 @@ def adjust_subpads(imData, pad, fixpad=0):
     ## Method: starting from fixpad, find the subpad that has the most
     ##      overlap with it, and adjust that pad. In the adjusting
     ##      process we find again the pad with largest overlap
-    onPad = np.any(onPad, axis=2)
+    onPad_r = np.any(onPad, axis=1)
         # this 2D array now records if a given r is covered by each pad
     offset = np.zeros(Npads)
         # record the offset value for each pad
@@ -84,40 +87,38 @@ def adjust_subpads(imData, pad, fixpad=0):
         for i_pad in xrange(Npads):
             if adjusted[i_pad]:
                 continue
-            if np.sum(np.logical_and(onPad[current_pad], onPad[i_pad])) > overlap:
+            if np.sum(np.logical_and(onPad_r[current_pad], onPad_r[i_pad])) > overlap:
                 adj_pad = i_pad
-                overlap = np.sum(np.logical_and(onPad[current_pad], onPad[i_pad])
+                overlap = np.sum(np.logical_and(onPad_r[current_pad], onPad_r[i_pad]))
         # next set current_pad to this subpad and find the subpad 
         # that has the largest overlap
         # with adj_pad
         overlap = 0
         current_pad = adj_pad
-        ajd_pad = 0 
+        adj_pad = 0 
         for i_pad in xrange(Npads):
             if not adjusted[i_pad]:
                 continue
-            if np.sum(np.logical_and(onPad[current_pad], onPad[i_pad])) > overlap:
+            if np.sum(np.logical_and(onPad_r[current_pad], onPad_r[i_pad])) > overlap:
                 adj_pad = i_pad
-                overlap = np.sum(np.logical_and(onPad[current_pad], onPad[i_pad]))
+                overlap = np.sum(np.logical_and(onPad_r[current_pad], onPad_r[i_pad]))
         # finally, adjust current_pad to match adj_pad
-        adj_min = np.nonzero(np.logical_and(onPad[current_pad], onPad[adj_pad]))[0][0] + 5
-        adj_max = np.nonzero(np.logical_and(onPad[current_pad], onPad[adj_pad]))[0][-1] - 5
+        adj_min = np.nonzero(np.logical_and(onPad_r[current_pad], onPad_r[adj_pad]))[0][0] + 5
+        adj_max = np.nonzero(np.logical_and(onPad_r[current_pad], onPad_r[adj_pad]))[0][-1] - 5
         if adj_max <= adj_min:
             raise RuntimeError("Not enough overlap!")
-            offset[current_pad] = np.mean(fr[adj_pad][adj_min:adj_max]-fr[current_pad][adj_min:adj_max])
+        offset[current_pad] = np.mean(fr[adj_pad][adj_min:adj_max]-fr[current_pad][adj_min:adj_max])
+        fr[current_pad] += offset[current_pad]
         adjusted[current_pad] = True
+        print "Adjusted pad %d against pad %d" % (current_pad+1, adj_pad+1)
         
     # plot fr after adjusting for offset
-    for i_pad in xrange(Npads):
-        fr[i_pad] += offset[i_pad]
-        
     if do_debug:
         ax4 = fig.add_subplot(2,2,4)
         for i_pad in xrange(4):
-            ax4.plot(twotheta_deg, fr[i_pad], label='%d'%i_pad)
+            ax4.plot(twotheta_deg, fr[i_pad], label='pad%d'%(i_pad+1))
         ax4.set_xlabel(r"$2\theta$")
         ax4.legend()
-        fig.savefig("r%03d_i%01d_rb%03d_debug.pdf" % (run, img, run_bkgd))
 
     # now redo coordinate change with offsets
     imData_polar = np.zeros((nt, nr))
@@ -133,7 +134,7 @@ def adjust_subpads(imData, pad, fixpad=0):
                 r = np.sqrt((x-x0)**2 + (y-y0)**2)
                 t = np.arctan((y-y0) / (x-x0))
                 imData_polar[findind(t,tt), \
-                             findind(r,rr)] += imData[y,x]
+                             findind(r,rr)] += imData[y,x]+offset[i_pad]
                 onPad[findind(t,tt), \
                       findind(r,rr)] += 1 
 
@@ -141,4 +142,4 @@ def adjust_subpads(imData, pad, fixpad=0):
 
     # return values: data in polar coordinates; 2*theta array; r array;
     #                fr array (average for each r)
-    return imData_polar, rr, tt, twotheta_deg, fr
+    return imData_polar, rr, tt, twotheta_deg, fr, offset
