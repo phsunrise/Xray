@@ -120,6 +120,8 @@ def adjust_subpads(imData, pad, fixpad=0, do_debug=False, figname='debug'):
     fig.savefig(figname+".pdf")
     if do_debug:
         plt.show()
+    else:
+        plt.close()
 
     # now redo coordinate change with offsets
     imData_polar = np.zeros((nt, nr))
