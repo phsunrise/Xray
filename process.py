@@ -129,6 +129,7 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
         ax_fit.plot(twotheta_deg[fitmin:fitmax], \
                  fr[fitmin:fitmax]-a0*np.exp(-b0*rr[fitmin:fitmax])-c0, \
                  'g-', label='minus bkgd')
+        ax_fit.axhline(y=0., ls='--', color='k')
         ax_fit.set_xlabel(r"$2\theta$ (deg)")
         ax_fit.legend()
         def onselect3(eclick, erelease):
