@@ -77,8 +77,6 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
     while True:
         fig_fit = plt.figure(figsize=(20,10))
         ax1_fit = fig_fit.add_subplot(1,1,1)
-        print "Selected range: (%f, %f)" % (twotheta_deg[fit_range[0]], \
-                                            twotheta_deg[fit_range[1]])
         ax1_fit.plot(twotheta_deg[fit_range[0]:fit_range[1]], \
                      fr[fit_range[0]:fit_range[1]])
         ax1_fit.set_xlabel(r"$2\theta$ (deg)")
