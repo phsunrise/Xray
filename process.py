@@ -30,29 +30,61 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
 
     fixpad = 0
     figname = "r%04d_i%02d_rb%04d_offsets" % (run, img, run_bkgd)
-    imData_polar, rr, tt, twotheta_deg, fr, offset = adjust_subpads(imData, pad, \
+    imData_polar, onPad, rr, tt, twotheta_deg, fr, offset = adjust_subpads(imData, pad, \
                                             fixpad=fixpad, do_debug=do_debug, \
                                             figname=figname)
     
-    # plot data after process
-    fig = plt.figure(figsize=(7.5, 15))
-    ax1 = fig.add_subplot(2,1,1)
-    ax1.imshow(imData_polar, \
-            extent=(rr[0], rr[-1], tt[0]/np.pi*180, tt[-1]/np.pi*180),\
-            aspect='auto', origin='lower')
-    ax1.set_xlabel(r"$r$")
-    ax1.set_ylabel(r"$\phi$ (deg)")
+    # plot data after process, and let user select 
+    # region(s) of image for plotting
+    while True:
+        fig = plt.figure(figsize=(10, 20))
+        ax1 = fig.add_subplot(2,1,1)
+        ax1.imshow(imData_polar, \
+                extent=(rr[0], rr[-1], tt[0]/np.pi*180, tt[-1]/np.pi*180),\
+                aspect='auto', origin='lower')
+        ax1.set_xlabel(r"$r$")
+        ax1.set_ylabel(r"$\phi$ (deg)")
 
-    ax2 = fig.add_subplot(2,1,2, sharex=ax1)
-    ax2.plot(rr, fr, label='orig.')
+        ax2 = fig.add_subplot(2,1,2, sharex=ax1)
+        ax2.plot(rr, fr, label='orig.')
 
-    if do_debug:
-        ax2.legend()
+        if do_debug:
+            ax2.legend()
+            plt.show()
+            print "Debug mode: exiting before fit"
+            sys.exit(0)
+
+        regions = []
+        def onselect4(eclick, erelease):
+            x1, y1 = eclick.xdata, eclick.ydata 
+            x2, y2 = erelease.xdata, erelease.ydata 
+            x1, x2 = min(x1, x2), max(x1, x2)
+            y1, y2 = min(y1, y2), max(y1, y2)
+            regions.append([x1, y1, x2, y2])
+            ax1.add_patch(Rectangle([x1,y1], x2-x1, y2-y1, alpha=0.5, \
+                                    color='g'))
+        rect = RectangleSelector(ax1, onselect4, drawtype='box')
         plt.show()
-        print "Debug mode: exiting before fit"
-        sys.exit(0)
 
-    ## let user select range for background fit
+        val = raw_input("Continue? Enter n to redo this step: ")
+        if val not in ['n', 'N', 'no']:
+            break
+    
+    # now recalculate fr using the mask
+    print "Chosen regions:", regions
+    mask = np.zeros((len(tt), len(rr)))
+    print rr, tt
+    for i_reg in xrange(len(regions)):
+        for i_r, r in enumerate(rr):
+            if regions[i_reg][0] <= r and r <= regions[i_reg][2]:
+                for i_t, t in enumerate(tt/np.pi*180.):
+                    if regions[i_reg][1] <= t and t <= regions[i_reg][3]:
+                        mask[i_t, i_r] = 1. 
+    imData_polar = imData_polar * mask
+    onPad = onPad * mask
+    fr = np.sum(imData_polar, axis=0)/np.sum(onPad, axis=0)
+
+    ## let user select range for background
     ## first select fit range
     fig_fit = plt.figure(figsize=(20,10))
     ax1_fit = fig_fit.add_subplot(1,1,1)

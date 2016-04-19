@@ -143,6 +143,7 @@ def adjust_subpads(imData, pad, fixpad=0, do_debug=False, figname='debug'):
 
     fr = np.sum(imData_polar, axis=0)/np.sum(onPad, axis=0)
 
-    # return values: data in polar coordinates; 2*theta array; r array;
-    #                fr array (average for each r)
-    return imData_polar, rr, tt, twotheta_deg, fr, offset
+    # return values: data in polar coordinates; onPad; r array; t array;
+    #                twotheta array; fr array (average for each r);
+    #                offsets
+    return imData_polar, onPad, rr, tt, twotheta_deg, fr, offset
