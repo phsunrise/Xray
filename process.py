@@ -73,7 +73,6 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
     # now recalculate fr using the mask
     print "Chosen regions:", regions
     mask = np.zeros((len(tt), len(rr)))
-    print rr, tt
     for i_reg in xrange(len(regions)):
         for i_r, r in enumerate(rr):
             if regions[i_reg][0] <= r and r <= regions[i_reg][2]:
@@ -179,6 +178,10 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
         try:
             params, params_cov = curve_fit(fitfunc, twotheta_deg[fitmin:fitmax], \
                                      fr[fitmin:fitmax], p0=params)
+            print "Fit successful! Parameters:"
+            for i in range(3, len(params), 3):
+                print "Peak %d: mean=%.2f, sigma=%.2f, amp=%.2f" % (i/3+1,\
+                            params[i+1], params[i+2], params[i])
         except RuntimeError:
             print "Fit failed! Please choose the peaks again..."
             continue
