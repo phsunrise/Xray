@@ -44,6 +44,7 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
                 aspect='auto', origin='lower')
         ax1.set_xlabel(r"$r$")
         ax1.set_ylabel(r"$\phi$ (deg)")
+        ax1.set_title("Please select region(s)")
 
         ax2 = fig.add_subplot(2,1,2, sharex=ax1)
         ax2.plot(rr, fr, label='orig.')
