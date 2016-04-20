@@ -188,10 +188,10 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
                                      twotheta_deg[fitmin:fitmax], \
                                      fr[fitmin:fitmax], p0=params)
             print "Fit successful! Parameters:"
+            params_err = np.diag(params_cov)
             for i in range(3, len(params), 3):
                 print "Peak %d: mean=%.2f, sigma=%.2f, amp=%.2f" % (i/3,\
                             params[i+1], params[i+2], params[i])
-                params_err = np.diag(params_cov)
                 print "Error: mean=%.2f, sigma=%.2f, amp=%.2f" % (\
                         params_err[i+1], params_err[i+2], params_err[i])
         except RuntimeError:
