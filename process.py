@@ -29,7 +29,7 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
         imData = imData - imData_bkgd
 
     fixpad = 0
-    figname = "r%04d_i%02d_rb%04d_offsets" % (run, img, run_bkgd)
+    figname = "r%04d_i%02d_rb%04d_p%d_offsets" % (run, img, run_bkgd, pad)
     (imData_polar, onPad, rr, tt, \
          twotheta_deg, fr, offset) = adjust_subpads(imData, pad, \
                                        fixpad=fixpad, do_debug=do_debug, \
@@ -143,10 +143,15 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
     a0 = fr[fitmin]/np.exp(-b0*rr[fitmin])
     c0 = 0.
     fit_mask = fit_mask.astype(bool)
-    popt, pcov = curve_fit(bkgd_fit, rr[fit_mask], fr[fit_mask], p0=[a0, b0, c0])
-    a0, b0, c0 = popt
-    print "fit:", popt
-    print "err:", np.sqrt(np.diag(pcov))
+    try:
+        popt, pcov = curve_fit(bkgd_fit, rr[fit_mask], fr[fit_mask], \
+                               p0=[a0, b0, c0])
+        a0, b0, c0 = popt
+        print "Background fit:", popt
+        print "err:", np.sqrt(np.diag(pcov))
+    except RuntimeError:
+        print "Background fit failed..."
+        print "Using approximate calculation results:", a0, b0, c0
 
     # then fit peaks + background
     # Let user choose approximate peak positions (using rectangular regions)
@@ -205,7 +210,7 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
 
         plt.xlabel(r"$2\theta$ (deg)")
         plt.legend()
-        plt.savefig("r%04d_i%02d_rb%04d.pdf" % (run, img, run_bkgd))
+        plt.savefig("r%04d_i%02d_rb%04d_p%d.pdf" % (run, img, run_bkgd, pad))
         plt.show()
 
         val = raw_input("Continue? Enter n to redo this step: ")
