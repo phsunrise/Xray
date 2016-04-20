@@ -139,7 +139,7 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
         fit_mask[peaks_range[i][0]:peaks_range[i][1]] = 0
     fitmin, fitmax = np.nonzero(fit_mask)[0][0], np.nonzero(fit_mask)[0][-1]
     bkgd_fit = lambda x,a,b,c: a*np.exp(-b*x)+c
-    b0 = -np.log(fr[fitmin]/fr[fitmax])/(rr[fitmin]-rr[fitmax])
+    b0 = -np.log(abs(fr[fitmin]/fr[fitmax]))/(rr[fitmin]-rr[fitmax])
     a0 = fr[fitmin]/np.exp(-b0*rr[fitmin])
     c0 = 0.
     fit_mask = fit_mask.astype(bool)
@@ -184,12 +184,16 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
         plt.show()
 
         try:
-            params, params_cov = curve_fit(fitfunc, twotheta_deg[fitmin:fitmax], \
+            params, params_cov = curve_fit(fitfunc, \
+                                     twotheta_deg[fitmin:fitmax], \
                                      fr[fitmin:fitmax], p0=params)
             print "Fit successful! Parameters:"
             for i in range(3, len(params), 3):
                 print "Peak %d: mean=%.2f, sigma=%.2f, amp=%.2f" % (i/3,\
                             params[i+1], params[i+2], params[i])
+                params_err = np.diag(params_cov)
+                print "Error: mean=%.2f, sigma=%.2f, amp=%.2f" % (\
+                        params_err[i+1], params_err[i+2], params_err[i])
         except RuntimeError:
             print "Fit failed! Please choose the peaks again..."
             continue
@@ -221,14 +225,15 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
     do_save = raw_input("Save data? ")
     if do_save in ['y', 'Y', 'yes', 's', 'S']:
         if not os.path.isfile("data_%d.pickle" % pad):
-            data = {'pad': 2}
+            data = {'pad': pad}
             pickle.dump(data, open("data_%d.pickle" % pad, 'wb'))
         data = pickle.load(open("data_%d.pickle" % pad, 'rb'))
-        thisrun = {'img': img, 'run_bkgd': run_bkgd, 'twotheta_deg': twotheta_deg,\
+        thisrun = {'img': img, 'run_bkgd': run_bkgd, \
+                   'twotheta_deg': twotheta_deg,\
                    'fr': fr, 'bkgdSubtract': bkgdSubtract}
         thisrun['Npeaks'] = len(params)/3 - 1
         thisrun['params'] = params
-        thisrun['params_err'] = np.sqrt(np.diag(params_cov))
+        thisrun['params_err'] = np.sqrt(params_err)
         thisrun['offset'] = offset
         data[run] = thisrun
         pickle.dump(data, open("data_%d.pickle" % pad, 'wb'))
