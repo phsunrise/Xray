@@ -144,7 +144,8 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
     fit_mask = fit_mask.astype(bool)
     popt, pcov = curve_fit(bkgd_fit, rr[fit_mask], fr[fit_mask], p0=[a0, b0, c0])
     a0, b0, c0 = popt
-    print "fit:", popt, np.sqrt(np.diag(pcov))
+    print "fit:", popt
+    print "err:", np.sqrt(np.diag(pcov))
 
     # then fit peaks + background
     # Let user choose approximate peak positions (using rectangular regions)
@@ -181,7 +182,7 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
                                      fr[fitmin:fitmax], p0=params)
             print "Fit successful! Parameters:"
             for i in range(3, len(params), 3):
-                print "Peak %d: mean=%.2f, sigma=%.2f, amp=%.2f" % (i/3+1,\
+                print "Peak %d: mean=%.2f, sigma=%.2f, amp=%.2f" % (i/3,\
                             params[i+1], params[i+2], params[i])
         except RuntimeError:
             print "Fit failed! Please choose the peaks again..."
