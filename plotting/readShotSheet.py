@@ -9,9 +9,7 @@ def get2theta(r, D):
 wb = load_workbook("ShotSheet.xlsx")
 data = pickle.load(open("data_2.pickle", 'rb'))
 
-ws = wb["Cold peaks"]
-p1 = ws['B2'].value
-D = ws['F2'].value
+p1 = 43
 
 ws = wb["LA61 shot sheet"]
 
@@ -26,10 +24,10 @@ delaytime = {} # used to store number of instances
 shottype = 0 # AB+EF or AB or EF
 
 for i_row in range(2, 100):
-    run = ws['D%d' % i_row].value
-    try: # skip if no data exists
+    run = ws['D'+str(i_row)].value
+    try: 
         Npeaks = data[run]['Npeaks']
-    except KeyError:
+    except KeyError: # skip if no data exists
         continue
     
     t = ws['M'+str(i_row)].value # delay time
@@ -42,6 +40,8 @@ for i_row in range(2, 100):
         except KeyError:
             delaytime[t] = 0
         marker = markers[delaytime[t]]
+        if ws['W'+str(i_row)].value != 'Y':
+            continue
     elif ws['F%d' % i_row].value == "Laser (AB) and X-rays":
         ax = ax2
         shottype = 1
@@ -77,24 +77,23 @@ for i_row in range(2, 100):
         ws['AF%d' % i_row] = m[2]
         ws['AG%d' % i_row] = s[2] 
 
-    c = ['y', 'r', 'b']
     # plotting the peak positions
-    if shottype == 0:
+    if shottype == 0: # AB+EF
         for i in xrange(Npeaks):
-            if get2theta(m[i], D) > 50.:
-                c[i] = 'b'
-            elif np.abs(get2theta(m[i],D)-get2theta(p1,D)) < 1.:
-                c[i] = 'y'
+            if m[i] > 48.:
+                c = 'b'
+            elif np.abs(m[i]-p1) < 0.5:
+                c = 'y'
             else:
-                c[i] = 'r'
-            ax.errorbar(ws['M'+str(i_row)].value, get2theta(m[i], D), \
-                        yerr=180./np.pi*D*s[i]/(m[i]**2+D**2), c=c[i], \
+                c = 'r'
+            ax.errorbar(ws['M'+str(i_row)].value, m[i], \
+                        yerr=s[i], c=c, \
                         fmt=marker)
     #END shottype 0
     else:
         for i in xrange(Npeaks):
-            ax.errorbar(ws['M'+str(i_row)].value, get2theta(m[i], D), \
-                        yerr=180./np.pi*D*s[i]/(m[i]**2+D**2), c=c[i], \
+            ax.errorbar(ws['M'+str(i_row)].value, m[i], \
+                        yerr=s[i], c='r', \
                         fmt=marker)
         
 
@@ -106,13 +105,13 @@ for i_row in range(2, 100):
     ws['AJ%d' % i_row] = c0
     #ax2.errorbar(ws['M'+str(i_row)].value, \
     #             a0*np.exp(-b0*p1)+c0, \
-    #             yerr=180./np.pi*D*s2/(m2**2+D**2), c='g', fmt='o')
+    #             yerr=s2, c='g', fmt='o')
 
-ax1.axhline(y=get2theta(p1, D), label="cold peak", \
+ax1.axhline(y=p1, label="cold peak", \
             color='k', linestyle='--')
-ax2.axhline(y=get2theta(p1, D), label="cold peak", \
+ax2.axhline(y=p1, label="cold peak", \
             color='k', linestyle='--')
-ax3.axhline(y=get2theta(p1, D), label="cold peak", \
+ax3.axhline(y=p1, label="cold peak", \
             color='k', linestyle='--')
 ax1.axhline(y=37.2, label="cold peak", \
             color='k', linestyle='--')
@@ -129,6 +128,9 @@ ax3.set_ylabel(r"$2\theta$ (deg)")
 ax1.set_title("AB+EF")
 ax2.set_title("AB")
 ax3.set_title("EF")
+
+xmin, xmax = ax1.get_xlim()
+ax1.set_xlim(xmin-0.1, xmax+0.1)
 plt.show()
 
 fig.savefig("peaks.png")
