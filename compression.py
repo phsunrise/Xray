@@ -4,6 +4,9 @@ import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 
+delaytimes = np.genfromtxt("delaytimes.txt", skip_header=1)
+delaytimes = dict( (delaytimes[i,0], delaytimes[i,1]) 
+                   for i in xrange(delaytimes.shape[0]) )
 coldpeaks = np.array([37.3, 43.3])
 coldpeaks_label = ['(111)', '(200)']
 ratio = np.linspace(1., 3., 200)
@@ -56,6 +59,7 @@ for run in data2.keys():
                   * (xmax**(1./3))) / np.pi * 180.)
     ax2.set_yticklabels(coldpeaks_label, color='r')
 
-    ax1.set_title("Shot %d" % run)
+    t = delaytimes[run]
+    ax1.set_title("Shot %d, delay %.1f ns" % (run, t))
     fig.savefig("r%04d_compression.pdf" % run)
     plt.close()
