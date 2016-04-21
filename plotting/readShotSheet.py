@@ -7,11 +7,9 @@ def get2theta(r, D):
     return np.arctan(r*1./D)/np.pi*180
 
 wb = load_workbook("ShotSheet.xlsx")
-data = pickle.load(open("data_2.pickle", 'rb'))
+ws = wb["LA61 shot sheet"]
 
 p1 = 43
-
-ws = wb["LA61 shot sheet"]
 
 # figure and axes
 fig = plt.figure(figsize=(7,21))
@@ -23,6 +21,8 @@ delaytime = {} # used to store number of instances
                # for each delay time
 shottype = 0 # AB+EF or AB or EF
 
+# pad 2
+data = pickle.load(open("data_2.pickle", 'rb'))
 for i_row in range(2, 100):
     run = ws['D'+str(i_row)].value
     try: 
@@ -86,16 +86,13 @@ for i_row in range(2, 100):
                 c = 'y'
             else:
                 c = 'r'
-            ax.errorbar(ws['M'+str(i_row)].value, m[i], \
-                        yerr=s[i], c=c, \
+            ax.errorbar(t, m[i], yerr=s[i], c=c, \
                         fmt=marker)
     #END shottype 0
     else:
         for i in xrange(Npeaks):
-            ax.errorbar(ws['M'+str(i_row)].value, m[i], \
-                        yerr=s[i], c='r', \
+            ax.errorbar(t, m[i], yerr=s[i], c='r', \
                         fmt=marker)
-        
 
     a0 = data[run]['params'][0]
     b0 = data[run]['params'][1]
@@ -106,6 +103,91 @@ for i_row in range(2, 100):
     #ax2.errorbar(ws['M'+str(i_row)].value, \
     #             a0*np.exp(-b0*p1)+c0, \
     #             yerr=s2, c='g', fmt='o')
+
+# pad 0 
+data = pickle.load(open("data_0.pickle", 'rb'))
+for i_row in range(2, 100):
+    run = ws['D'+str(i_row)].value
+    try: 
+        Npeaks = data[run]['Npeaks']
+    except KeyError: # skip if no data exists
+        continue
+    
+    t = ws['M'+str(i_row)].value+0.02 # delay time
+
+    if ws['F%d' % i_row].value == "Laser (AB+EF) and X-rays":
+        ax = ax1
+        shottype = 0
+        try:
+            delaytime[t] += 1
+        except KeyError:
+            delaytime[t] = 0
+        marker = markers[delaytime[t]]
+        #if ws['W'+str(i_row)].value != 'Y':
+        #    continue
+    elif ws['F%d' % i_row].value == "Laser (AB) and X-rays":
+        ax = ax2
+        shottype = 1
+        marker = 'o' 
+    elif ws['F%d' % i_row].value == "Laser (EF) and X-rays":
+        ax = ax3
+        shottype = 2
+        marker = 'o' 
+
+    ws['X%d' % i_row] = Npeaks
+    A = []
+    m = []
+    s = []
+    if Npeaks >= 1:
+        A.append(data[run]['params'][3])
+        m.append(data[run]['params'][4])
+        s.append(data[run]['params'][5])
+        ws['AK%d' % i_row] = A[0]
+        ws['AL%d' % i_row] = m[0]
+        ws['AM%d' % i_row] = s[0] 
+    if Npeaks >= 2:
+        A.append(data[run]['params'][6])
+        m.append(data[run]['params'][7])
+        s.append(data[run]['params'][8])
+        ws['AN%d' % i_row] = A[1]
+        ws['AO%d' % i_row] = m[1]
+        ws['AP%d' % i_row] = s[1] 
+    if Npeaks >= 3:
+        A.append(data[run]['params'][9])
+        m.append(data[run]['params'][10])
+        s.append(data[run]['params'][11])
+        ws['AQ%d' % i_row] = A[2]
+        ws['AR%d' % i_row] = m[2]
+        ws['AS%d' % i_row] = s[2] 
+
+    # plotting the peak positions
+    if shottype == 0: # AB+EF
+        for i in xrange(Npeaks):
+            if m[i] > 48.:
+                c = 'b'
+            elif np.abs(m[i]-p1) < 0.5:
+                c = 'y'
+            else:
+                c = 'r'
+            ax.errorbar(t, m[i], yerr=s[i], c=c, \
+                        fmt=marker)
+    #END shottype 0
+    else:
+        for i in xrange(Npeaks):
+            ax.errorbar(t, m[i], yerr=s[i], c='r', \
+                        fmt=marker)
+        
+
+    a0 = data[run]['params'][0]
+    b0 = data[run]['params'][1]
+    c0 = data[run]['params'][2]
+    ws['AT%d' % i_row] = a0
+    ws['AU%d' % i_row] = b0
+    ws['AV%d' % i_row] = c0
+    #ax2.errorbar(ws['M'+str(i_row)].value, \
+    #             a0*np.exp(-b0*p1)+c0, \
+    #             yerr=s2, c='g', fmt='o')
+
 
 ax1.axhline(y=p1, label="cold peak", \
             color='k', linestyle='--')
