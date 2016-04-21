@@ -51,3 +51,8 @@ def get_calib(pad):
     twotheta_deg = params['twotheta_deg']
 
     return x0, y0, D, rr, tt, twotheta_deg
+
+def get_delaytime(run):
+    delaytimes = pickle.load(open("delaytimes.pickle", 'rb'))
+    
+    return delaytimes[run]
