@@ -10,7 +10,7 @@ coldpeaks_label = ['(111)', '(200)']
 ratio = np.linspace(1., 3., 200)
 comppeaks = []
 for i in xrange(len(coldpeaks)):
-    comppeaks.append(np.arctan( np.tan(coldpeaks[i]/180.*np.pi)
+    comppeaks.append(2*np.arcsin( np.sin(coldpeaks[i]/2./180.*np.pi)
                               * (ratio**(1./3)) )
                     /np.pi*180.)
 
@@ -53,7 +53,7 @@ for run in data2.keys():
     xmin, xmax = ax1.get_xlim()
     ymin, ymax = ax1.get_ylim()
     ax2.set_ylim(ymin, ymax)
-    ax2.set_yticks(np.arctan(np.tan(coldpeaks/180.*np.pi)
+    ax2.set_yticks(2*np.arcsin(np.sin(coldpeaks/2./180.*np.pi)
                   * (xmax**(1./3))) / np.pi * 180.)
     ax2.set_yticklabels(coldpeaks_label, color='r')
 
