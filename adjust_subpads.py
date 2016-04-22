@@ -8,7 +8,7 @@ This module adjusts for offsets on the subpads so that
 they agree on overlapping radial ranges 
 '''
 
-def adjust_subpads(imData, pad, fixpad=0, do_debug=False, figname='debug'):
+def adjust_subpads(imData, pad, fixpad=0, do_debug=False, figname='debug', offset=None):
 # fixpad is the subpad to be fixed; other pads will be adjusted to this pad 
     ny, nx = imData.shape
     pads = get_pads(pad)
@@ -65,54 +65,59 @@ def adjust_subpads(imData, pad, fixpad=0, do_debug=False, figname='debug'):
     ax3.set_xlabel(r"$2\theta$ (deg)")
     ax3.legend()
 
+    if offset == None:
     ## adjusting for offsets
     ## Method: starting from fixpad, find the subpad that has the most
     ##      overlap with it, and adjust that pad. In the adjusting
     ##      process we find again the pad with largest overlap
-    onPad_r = np.any(onPad, axis=1)
-        # this 2D array now records if a given r is covered by each pad
-    offset = np.zeros(Npads)
-        # record the offset value for each pad
-    adjusted = np.zeros(Npads).astype(bool)
-        # record if each pad has been adjusted
-    adjusted[fixpad] = True
-    current_pad = fixpad
-    while not np.all(adjusted):
-        # first find the unadjusted subpad that has the largest overlap
-        # with current_pad
-        overlap = 0
-        adj_pad = fixpad 
-        for i_pad in xrange(Npads):
-            if adjusted[i_pad]:
-                continue
-            if np.sum(np.logical_and(onPad_r[current_pad], onPad_r[i_pad])) > overlap:
-                adj_pad = i_pad
-                overlap = np.sum(np.logical_and(onPad_r[current_pad], onPad_r[i_pad]))
-        # next set current_pad to this subpad and find the subpad 
-        # that has the largest overlap
-        # with adj_pad
-        overlap = 0
-        current_pad = adj_pad
-        adj_pad = fixpad 
-        for i_pad in xrange(Npads):
-            if not adjusted[i_pad]:
-                continue
-            if np.sum(np.logical_and(onPad_r[current_pad], onPad_r[i_pad])) > overlap:
-                adj_pad = i_pad
-                overlap = np.sum(np.logical_and(onPad_r[current_pad], onPad_r[i_pad]))
-        # finally, adjust current_pad to match adj_pad
-        adj_min = np.nonzero(np.logical_and(onPad_r[current_pad], onPad_r[adj_pad]))[0][0] + 5
-        adj_max = np.nonzero(np.logical_and(onPad_r[current_pad], onPad_r[adj_pad]))[0][-1] - 5
-        if adj_max <= adj_min:
-            raise RuntimeError("Not enough overlap!")
-        offset[current_pad] = np.mean(fr[adj_pad][adj_min:adj_max]-fr[current_pad][adj_min:adj_max])
-        fr[current_pad] += offset[current_pad]
-        adjusted[current_pad] = True
-        print "Adjusted pad %d against pad %d" % (current_pad+1, adj_pad+1)
+        onPad_r = np.any(onPad, axis=1)
+            # this 2D array now records if a given r is covered by each pad
+        offset = np.zeros(Npads)
+            # record the offset value for each pad
+        adjusted = np.zeros(Npads).astype(bool)
+            # record if each pad has been adjusted
+        adjusted[fixpad] = True
+        current_pad = fixpad
+        while not np.all(adjusted):
+            # first find the unadjusted subpad that has the largest overlap
+            # with current_pad
+            overlap = 0
+            adj_pad = fixpad 
+            for i_pad in xrange(Npads):
+                if adjusted[i_pad]:
+                    continue
+                if np.sum(np.logical_and(onPad_r[current_pad], onPad_r[i_pad])) > overlap:
+                    adj_pad = i_pad
+                    overlap = np.sum(np.logical_and(onPad_r[current_pad], onPad_r[i_pad]))
+            # next set current_pad to this subpad and find the subpad 
+            # that has the largest overlap
+            # with adj_pad
+            overlap = 0
+            current_pad = adj_pad
+            adj_pad = fixpad 
+            for i_pad in xrange(Npads):
+                if not adjusted[i_pad]:
+                    continue
+                if np.sum(np.logical_and(onPad_r[current_pad], onPad_r[i_pad])) > overlap:
+                    adj_pad = i_pad
+                    overlap = np.sum(np.logical_and(onPad_r[current_pad], onPad_r[i_pad]))
+            # finally, adjust current_pad to match adj_pad
+            adj_min = np.nonzero(np.logical_and(onPad_r[current_pad], onPad_r[adj_pad]))[0][0] + 5
+            adj_max = np.nonzero(np.logical_and(onPad_r[current_pad], onPad_r[adj_pad]))[0][-1] - 5
+            if adj_max <= adj_min:
+                raise RuntimeError("Not enough overlap!")
+            offset[current_pad] = np.mean(fr[adj_pad][adj_min:adj_max]-fr[current_pad][adj_min:adj_max])
+            adjusted[current_pad] = True
+            print "Adjusted pad %d against pad %d" % (current_pad+1, adj_pad+1)
+    else:
+        if  isinstance(offset, float) or isinstance(offset, int):
+            offset = np.ones(Npads) * offset * 1.
+        print "Using preset offsets:", offset
         
     # plot fr after adjusting for offset
     ax4 = fig.add_subplot(2,2,4)
     for i_pad in xrange(4):
+        fr[i_pad] += offset[i_pad]
         ax4.plot(twotheta_deg, fr[i_pad], label='pad%d'%(i_pad+1))
     ax4.set_xlabel(r"$2\theta$")
     ax4.legend()
