@@ -27,6 +27,8 @@ def process(pad, run, img, run_bkgd, do_debug, bkgdSubtract):
 
     if bkgdSubtract:
         imData = imData - imData_bkgd
+    else:
+        print "No background subtracted!"
 
     fixpad = 0
     figname = "r%04d_i%02d_rb%04d_p%d_offsets" % (run, img, run_bkgd, pad)
@@ -247,7 +249,7 @@ if __name__=="__main__":
     run_bkgd = 401
     img_bkgd = 0
     do_debug = False 
-    bkgdSubtract = True
+    bkgdSubtract = False 
 
     # parse command line arguments 
     opts, args = getopt(sys.argv[1:], "p:r:i:b:d")

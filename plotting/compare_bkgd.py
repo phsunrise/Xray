@@ -1,26 +1,40 @@
+import os, sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
 import numpy as np
 import matplotlib.pyplot as plt
-import pickle
+from adjust_subpads import adjust_subpads
+from helpers import get_data
 
-run = 360
 pad = 2
-img = 0
-if img == 0:
-    run_bkgd = 334
-else:
-    run_bkgd = 373
-data1 = pickle.load(open("r%3d_p%1d_i%1d_noBkgdSubtract.pickle" % (run, pad, img), 'rb'))
-data2 = pickle.load(open("r%3d_p%1d_i%1d_noBkgdSubtract.pickle" % (run_bkgd, pad, 0), 'rb'))
-data3 = pickle.load(open("r%3d_p%1d_i%1d_rb%3d.pickle" % (run, pad, img, run_bkgd), 'rb'))
+run = 304
+img = 1
+run_bkgd = 401 
+img_bkgd = 0
+do_debug = False
+fixpad = 0
+figname = "test"
 
-plt.plot(data1['twotheta']/np.pi*180, data1['fr'], 'b-',\
-         label='original')
-plt.plot(data2['twotheta']/np.pi*180, data2['fr'], 'r-',\
-         label='background')
-plt.plot(data3['twotheta']/np.pi*180, data3['fr'], 'g-',\
-         label='orig. - backg.')
+imData = get_data(pad, run, img)
+imData_bkgd = get_data(pad, run_bkgd, img_bkgd)
+(imData_polar, onPad, rr, tt, \
+     twotheta_deg1, fr1, offset) = adjust_subpads(imData, pad, \
+                                   fixpad=fixpad, do_debug=do_debug, \
+                                   figname=figname)
+(imData_polar, onPad, rr, tt, \
+     twotheta_deg2, fr2, offset) = adjust_subpads(imData_bkgd, pad, \
+                                   fixpad=fixpad, do_debug=do_debug, \
+                                   figname=figname)
+(imData_polar, onPad, rr, tt, \
+     twotheta_deg3, fr3, offset) = adjust_subpads(imData-imData_bkgd, pad, \
+                                   fixpad=fixpad, do_debug=do_debug, \
+                                   figname=figname)
 
-plt.xlabel(r"$2\theta$ (deg)")
+plt.plot(twotheta_deg1, fr1, 'b-', label="orig")
+plt.plot(twotheta_deg2, fr2, 'g-', label="bkgd")
+plt.plot(twotheta_deg3, fr3, 'r-', label="orig-bkgd")
 plt.legend()
+plt.xlabel(r"$2\theta$")
+plt.title("Shot %d" % run)
+plt.savefig("bkgdSubtract_p%d_r%04d.pdf" % (pad, run))
 plt.show()
-plt.savefig("compare_abef.pdf")

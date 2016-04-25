@@ -90,8 +90,7 @@ def adjust_subpads(imData, pad, fixpad=0, do_debug=False, figname='debug', offse
                     adj_pad = i_pad
                     overlap = np.sum(np.logical_and(onPad_r[current_pad], onPad_r[i_pad]))
             # next set current_pad to this subpad and find the subpad 
-            # that has the largest overlap
-            # with adj_pad
+            # that has the largest overlap with adj_pad
             overlap = 0
             current_pad = adj_pad
             adj_pad = fixpad 
@@ -107,17 +106,19 @@ def adjust_subpads(imData, pad, fixpad=0, do_debug=False, figname='debug', offse
             if adj_max <= adj_min:
                 raise RuntimeError("Not enough overlap!")
             offset[current_pad] = np.mean(fr[adj_pad][adj_min:adj_max]-fr[current_pad][adj_min:adj_max])
+            fr[current_pad] += offset[current_pad]
             adjusted[current_pad] = True
             print "Adjusted pad %d against pad %d" % (current_pad+1, adj_pad+1)
     else:
         if  isinstance(offset, float) or isinstance(offset, int):
             offset = np.ones(Npads) * offset * 1.
-        print "Using preset offsets:", offset
+        for i_pad in xrange(Npads):
+            fr[i_pad] += offset[i_pad]
         
     # plot fr after adjusting for offset
+    print "Offsets:", offset
     ax4 = fig.add_subplot(2,2,4)
-    for i_pad in xrange(4):
-        fr[i_pad] += offset[i_pad]
+    for i_pad in xrange(Npads):
         ax4.plot(twotheta_deg, fr[i_pad], label='pad%d'%(i_pad+1))
     ax4.set_xlabel(r"$2\theta$")
     ax4.legend()
